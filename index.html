@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>تحدي الـ 40</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      :root {
+        --bg-dark: #0b0f19;
+        --card-glass: rgba(20, 27, 45, 0.65);
+        --border-glass: rgba(255, 255, 255, 0.08);
+        --text-main: #ffffff;
+        --text-sub: #94a3b8;
+        --primary: #8b5cf6; /* لون بنفسجي متناسق مع تصميمك */
+        --primary-glow: rgba(139, 92, 246, 0.5);
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --pending: #475569;
+      }
+
+      * {
+        box-sizing: border-box;
+        font-family: "Cairo", sans-serif;
+      }
+
+      body {
+        background: radial-gradient(circle at top, #1e293b, var(--bg-dark));
+        color: var(--text-main);
+        margin: 0;
+        padding: 20px;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 30px;
+        margin-top: 10px;
+      }
+
+      .header h1 {
+        font-size: 3rem;
+        font-weight: 900;
+        margin: 0;
+        background: linear-gradient(135deg, #a78bfa, #818cf8);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0px 4px 20px rgba(167, 139, 250, 0.3);
+      }
+
+      .header p {
+        color: var(--text-sub);
+        font-size: 1.1rem;
+        margin-top: 5px;
+      }
+
+      .container {
+        width: 100%;
+        max-width: 500px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      /* الكارت الأساسي */
+      .active-prayer-card {
+        background: var(--card-glass);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--border-glass);
+        border-radius: 24px;
+        padding: 30px 20px;
+        text-align: center;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .prayer-title-label {
+        color: var(--text-sub);
+        font-size: 1.1rem;
+        margin-bottom: 5px;
+      }
+      .prayer-name {
+        font-size: 3.5rem;
+        font-weight: 900;
+        margin: 0;
+        color: var(--text-main);
+      }
+      .prayer-time {
+        font-size: 1.5rem;
+        color: var(--primary);
+        font-weight: 700;
+        margin-bottom: 25px;
+        direction: ltr;
+      }
+
+      .log-btn {
+        background: linear-gradient(135deg, #a78bfa, #6366f1);
+        color: white;
+        border: none;
+        padding: 15px 40px;
+        font-size: 1.3rem;
+        font-weight: 700;
+        border-radius: 50px;
+        cursor: pointer;
+        width: 85%;
+        box-shadow: 0 4px 15px var(--primary-glow);
+        transition: all 0.3s ease;
+      }
+
+      .log-btn:hover {
+        transform: translateY(-3px) scale(1.02);
+        box-shadow: 0 6px 25px var(--primary-glow);
+      }
+      .log-btn.completed {
+        background: transparent;
+        cursor: default;
+      }
+      .log-btn.completed:hover {
+        transform: none;
+        box-shadow: none;
+      }
+
+      .btn-success {
+        border: 2px solid var(--success);
+        color: var(--success);
+      }
+      .btn-warning {
+        border: 2px solid var(--warning);
+        color: var(--warning);
+      }
+      .btn-danger {
+        border: 2px solid var(--danger);
+        color: var(--danger);
+      }
+
+      #status-msg {
+        margin-top: 15px;
+        font-size: 1rem;
+        font-weight: bold;
+        height: 20px;
+      }
+      .text-success {
+        color: var(--success);
+      }
+      .text-warning {
+        color: var(--warning);
+      }
+      .text-danger {
+        color: var(--danger);
+      }
+
+      /* التبويبات (Tabs) */
+      .tabs {
+        display: flex;
+        background: var(--card-glass);
+        border: 1px solid var(--border-glass);
+        border-radius: 50px;
+        padding: 5px;
+        gap: 5px;
+      }
+
+      .tab-btn {
+        flex: 1;
+        background: transparent;
+        color: var(--text-sub);
+        border: none;
+        padding: 10px;
+        border-radius: 50px;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: 0.3s;
+      }
+
+      .tab-btn.active {
+        background: var(--primary);
+        color: white;
+      }
+
+      /* المحتوى السفلي */
+      .dashboard-section {
+        background: var(--card-glass);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--border-glass);
+        border-radius: 24px;
+        padding: 20px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        display: none; /* مخفي افتراضياً */
+      }
+
+      .dashboard-section.active {
+        display: block;
+      }
+
+      /* أداء اليوم */
+      .today-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .prayer-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px;
+        border-radius: 16px;
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid var(--border-glass);
+      }
+      .row-info {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+      .row-name {
+        font-size: 1.2rem;
+        font-weight: 700;
+        width: 60px;
+      }
+      .row-time {
+        color: var(--text-sub);
+        font-size: 0.9rem;
+        direction: ltr;
+      }
+      .row-badge {
+        padding: 5px 12px;
+        border-radius: 50px;
+        font-size: 0.85rem;
+        font-weight: bold;
+      }
+
+      .badge-ontime {
+        background: rgba(16, 185, 129, 0.2);
+        color: var(--success);
+      }
+      .badge-late {
+        background: rgba(245, 158, 11, 0.2);
+        color: var(--warning);
+      }
+      .badge-missed {
+        background: rgba(239, 68, 68, 0.2);
+        color: var(--danger);
+      }
+      .badge-pending {
+        background: rgba(71, 85, 105, 0.4);
+        color: var(--text-sub);
+      }
+
+      .chart-container {
+        height: 250px;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>تحدي الـ 40</h1>
+      <p id="current-date">جاري التحميل...</p>
+    </div>
+
+    <div class="container">
+      <!-- الكارت الأساسي -->
+      <div class="active-prayer-card" id="prayer-card">
+        <div class="prayer-title-label">الصلاة الحالية</div>
+        <div class="prayer-name" id="p-name">...</div>
+        <div class="prayer-time" id="p-time">--:--</div>
+        <button class="log-btn" id="log-btn" onclick="logCurrentPrayer()">
+          صليت الآن
+        </button>
+        <div id="status-msg"></div>
+      </div>
+
+      <!-- أزرار التحكم في العرض -->
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('today')">
+          أداء اليوم
+        </button>
+        <button class="tab-btn" onclick="switchTab('week')">آخر أسبوع</button>
+        <button class="tab-btn" onclick="switchTab('all')">الـ 40 يوم</button>
+      </div>
+
+      <!-- شاشة أداء اليوم -->
+      <div id="view-today" class="dashboard-section active">
+        <div class="today-list" id="today-container">
+          <!-- سيتم حقن الصلوات هنا -->
+        </div>
+      </div>
+
+      <!-- شاشة الجراف (آخر أسبوع / 40 يوم) -->
+      <div id="view-chart" class="dashboard-section">
+        <div class="chart-container">
+          <canvas id="lineChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const PRAYERS = [
+        { id: "Fajr", name: "الفجر" },
+        { id: "Dhuhr", name: "الظهر" },
+        { id: "Asr", name: "العصر" },
+        { id: "Maghrib", name: "المغرب" },
+        { id: "Isha", name: "العشاء" },
+      ];
+
+      let prayerTimings24 = {};
+      let myLineChart = null;
+      let currentActivePrayer = null;
+      let currentChartRange = "week";
+
+      // دالة تحويل الوقت من 24 لـ 12 ساعة (ص / م)
+      function formatAMPM(time24) {
+        let [hours, minutes] = time24.split(":");
+        hours = parseInt(hours);
+        let ampm = hours >= 12 ? "م" : "ص";
+        hours = hours % 12;
+        hours = hours ? hours : 12;
+        return `${hours}:${minutes} ${ampm}`;
+      }
+
+      function getTodayStr() {
+        return new Date().toLocaleDateString("en-CA");
+      }
+
+      async function fetchTimings() {
+        try {
+          const res = await fetch(
+            `https://api.aladhan.com/v1/timingsByCity?city=6th of October City&country=Egypt&method=5`,
+          );
+          const data = await res.json();
+          prayerTimings24 = data.data.timings;
+          document.getElementById("current-date").innerText =
+            data.data.date.hijri.weekday.ar + " - " + data.data.date.readable;
+
+          checkAndRender();
+        } catch (error) {
+          document.getElementById("current-date").innerText =
+            "حدث خطأ في الاتصال بالإنترنت";
+        }
+      }
+
+      function parsePrayerTime(timeStr24) {
+        const [hours, minutes] = timeStr24.split(":");
+        const d = new Date();
+        d.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+        return d;
+      }
+
+      function checkAndRender() {
+        if (!prayerTimings24.Fajr) return;
+
+        const now = new Date();
+        let data = JSON.parse(localStorage.getItem("prayer40_data")) || {};
+        const todayStr = getTodayStr();
+        if (!data[todayStr]) data[todayStr] = {};
+
+        let activePrayerIndex = 0;
+
+        for (let i = 0; i < PRAYERS.length; i++) {
+          const prayer = PRAYERS[i];
+          const prayerTime = parsePrayerTime(prayerTimings24[prayer.id]);
+
+          if (now >= prayerTime) {
+            activePrayerIndex = i;
+
+            for (let j = 0; j < i; j++) {
+              const pastPrayer = PRAYERS[j].id;
+              if (!data[todayStr][pastPrayer]) {
+                data[todayStr][pastPrayer] = "missed";
+              }
+            }
+          }
+        }
+
+        if (now < parsePrayerTime(prayerTimings24.Fajr)) {
+          activePrayerIndex = 4; // العشاء
+        }
+
+        localStorage.setItem("prayer40_data", JSON.stringify(data));
+        currentActivePrayer = PRAYERS[activePrayerIndex];
+
+        // تحديث الكارت الأساسي
+        document.getElementById("p-name").innerText = currentActivePrayer.name;
+        // عرض الوقت بنظام 12 ساعة
+        document.getElementById("p-time").innerText = formatAMPM(
+          prayerTimings24[currentActivePrayer.id],
+        );
+
+        const btn = document.getElementById("log-btn");
+        const statusMsg = document.getElementById("status-msg");
+        const currentStatus = data[todayStr][currentActivePrayer.id];
+
+        btn.className = "log-btn"; // ريسيت للكلاس
+        if (currentStatus) {
+          btn.disabled = true;
+          if (currentStatus === "ontime") {
+            btn.classList.add("completed", "btn-success");
+            btn.innerText = "صُليت في وقتها";
+            statusMsg.className = "text-success";
+            statusMsg.innerText = "تقبل الله 💚";
+          } else if (currentStatus === "late") {
+            btn.classList.add("completed", "btn-warning");
+            btn.innerText = "صُليت متأخرة";
+            statusMsg.className = "text-warning";
+            statusMsg.innerText = "حاول تبدر المرة الجاية 💛";
+          } else if (currentStatus === "missed") {
+            btn.classList.add("completed", "btn-danger");
+            btn.innerText = "فائتة";
+            statusMsg.className = "text-danger";
+            statusMsg.innerText = "راحت عليك، صليها قضاء 💔";
+            btn.disabled = false;
+          }
+        } else {
+          btn.disabled = false;
+          btn.innerText = "صليت الآن";
+          statusMsg.innerText = "";
+        }
+
+        renderTodayList(data[todayStr]);
+        updateChart();
+      }
+
+      function logCurrentPrayer() {
+        if (!currentActivePrayer) return;
+
+        const now = new Date();
+        const adhanTime = parsePrayerTime(
+          prayerTimings24[currentActivePrayer.id],
+        );
+        const diffMinutes = Math.floor((now - adhanTime) / 60000);
+
+        // تعديل معيار الوقت ليصبح 30 دقيقة بدلاً من 60
+        let status = "ontime";
+        if (diffMinutes > 30) {
+          status = "late";
+        }
+
+        let data = JSON.parse(localStorage.getItem("prayer40_data")) || {};
+        const todayStr = getTodayStr();
+        if (!data[todayStr]) data[todayStr] = {};
+
+        data[todayStr][currentActivePrayer.id] = status;
+        localStorage.setItem("prayer40_data", JSON.stringify(data));
+
+        checkAndRender();
+      }
+
+      // بناء قائمة أداء اليوم
+      function renderTodayList(todayData) {
+        const container = document.getElementById("today-container");
+        container.innerHTML = "";
+
+        PRAYERS.forEach((prayer) => {
+          const time24 = prayerTimings24[prayer.id];
+          if (!time24) return;
+
+          const time12 = formatAMPM(time24);
+          const status = todayData[prayer.id];
+
+          let badgeClass = "badge-pending";
+          let badgeText = "لم يحن / بالانتظار";
+
+          if (status === "ontime") {
+            badgeClass = "badge-ontime";
+            badgeText = "في وقتها";
+          } else if (status === "late") {
+            badgeClass = "badge-late";
+            badgeText = "متأخرة";
+          } else if (status === "missed") {
+            badgeClass = "badge-missed";
+            badgeText = "فائتة";
+          }
+
+          const row = document.createElement("div");
+          row.className = "prayer-row";
+          row.innerHTML = `
+                    <div class="row-info">
+                        <div class="row-name">${prayer.name}</div>
+                        <div class="row-time">${time12}</div>
+                    </div>
+                    <div class="row-badge ${badgeClass}">${badgeText}</div>
+                `;
+          container.appendChild(row);
+        });
+      }
+
+      // التبديل بين التبويبات
+      function switchTab(tab) {
+        document
+          .querySelectorAll(".tab-btn")
+          .forEach((btn) => btn.classList.remove("active"));
+        document.getElementById("view-today").classList.remove("active");
+        document.getElementById("view-chart").classList.remove("active");
+
+        if (tab === "today") {
+          event.target.classList.add("active");
+          document.getElementById("view-today").classList.add("active");
+        } else {
+          event.target.classList.add("active");
+          document.getElementById("view-chart").classList.add("active");
+          currentChartRange = tab; // 'week' or 'all'
+          updateChart();
+        }
+      }
+
+      // تحديث الرسم البياني بناءً على النطاق الزمني
+      function updateChart() {
+        const data = JSON.parse(localStorage.getItem("prayer40_data")) || {};
+        let days = Object.keys(data).sort();
+
+        // فلترة الأيام حسب الاختيار
+        if (currentChartRange === "week" && days.length > 7) {
+          days = days.slice(-7);
+        } else if (currentChartRange === "all" && days.length > 40) {
+          days = days.slice(-40);
+        }
+
+        let labels = [];
+        let onTimeData = [];
+        let lateData = [];
+        let missedData = [];
+
+        days.forEach((day) => {
+          labels.push(day.split("-").slice(1).join("/"));
+          let ontime = 0,
+            late = 0,
+            missed = 0;
+
+          Object.values(data[day]).forEach((status) => {
+            if (status === "ontime") ontime++;
+            if (status === "late") late++;
+            if (status === "missed") missed++;
+          });
+
+          onTimeData.push(ontime);
+          lateData.push(late);
+          missedData.push(missed);
+        });
+
+        const ctx = document.getElementById("lineChart").getContext("2d");
+        if (myLineChart) myLineChart.destroy();
+
+        myLineChart = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: "في وقتها",
+                data: onTimeData,
+                borderColor: "#10b981",
+                backgroundColor: "rgba(16, 185, 129, 0.1)",
+                borderWidth: 3,
+                tension: 0.4,
+                fill: true,
+              },
+              {
+                label: "متأخرة",
+                data: lateData,
+                borderColor: "#f59e0b",
+                backgroundColor: "transparent",
+                borderWidth: 3,
+                tension: 0.4,
+              },
+              {
+                label: "فائتة",
+                data: missedData,
+                borderColor: "#ef4444",
+                backgroundColor: "transparent",
+                borderWidth: 3,
+                tension: 0.4,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: "index", intersect: false },
+            plugins: {
+              legend: {
+                labels: { color: "#f8fafc", font: { family: "Cairo" } },
+              },
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                max: 5,
+                ticks: { stepSize: 1, color: "#94a3b8" },
+                grid: { color: "rgba(255, 255, 255, 0.05)" },
+              },
+              x: {
+                ticks: { color: "#94a3b8", font: { family: "Cairo" } },
+                grid: { display: false },
+              },
+            },
+          },
+        });
+      }
+
+      fetchTimings();
+      setInterval(checkAndRender, 60000);
+    </script>
+  </body>
+</html>
