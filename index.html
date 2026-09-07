@@ -3,6 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0b0f19" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <link rel="icon" type="image/png" href="icon.png" />
+    <link rel="apple-touch-icon" href="icon.png" />
+
     <title>تحدي الـ 40</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap"
@@ -16,7 +26,7 @@
         --border-glass: rgba(255, 255, 255, 0.08);
         --text-main: #ffffff;
         --text-sub: #94a3b8;
-        --primary: #8b5cf6; /* لون بنفسجي متناسق مع تصميمك */
+        --primary: #8b5cf6;
         --primary-glow: rgba(139, 92, 246, 0.5);
         --success: #10b981;
         --warning: #f59e0b;
@@ -68,6 +78,7 @@
         display: flex;
         flex-direction: column;
         gap: 20px;
+        padding-bottom: 40px;
       }
 
       /* الكارت الأساسي */
@@ -158,7 +169,7 @@
         color: var(--danger);
       }
 
-      /* التبويبات (Tabs) */
+      /* التبويبات */
       .tabs {
         display: flex;
         background: var(--card-glass);
@@ -186,7 +197,6 @@
         color: white;
       }
 
-      /* المحتوى السفلي */
       .dashboard-section {
         background: var(--card-glass);
         backdrop-filter: blur(12px);
@@ -194,14 +204,13 @@
         border-radius: 24px;
         padding: 20px;
         box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-        display: none; /* مخفي افتراضياً */
+        display: none;
       }
 
       .dashboard-section.active {
         display: block;
       }
 
-      /* أداء اليوم */
       .today-list {
         display: flex;
         flex-direction: column;
@@ -254,10 +263,45 @@
         background: rgba(71, 85, 105, 0.4);
         color: var(--text-sub);
       }
+      .badge-current {
+        background: rgba(139, 92, 246, 0.2);
+        color: var(--primary);
+      }
 
       .chart-container {
         height: 250px;
         width: 100%;
+      }
+
+      /* شريط التقدم */
+      .progress-section {
+        background: var(--card-glass);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--border-glass);
+        border-radius: 24px;
+        padding: 25px 20px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      }
+      .progress-text {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 15px;
+        font-size: 1.1rem;
+        font-weight: 700;
+      }
+      .progress-bar {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 50px;
+        height: 12px;
+        overflow: hidden;
+        border: 1px solid var(--border-glass);
+      }
+      .progress-bar-fill {
+        background: linear-gradient(90deg, #6366f1, #a78bfa);
+        height: 100%;
+        width: 0%;
+        border-radius: 50px;
+        transition: width 1.5s ease-in-out;
       }
     </style>
   </head>
@@ -279,7 +323,6 @@
         <div id="status-msg"></div>
       </div>
 
-      <!-- أزرار التحكم في العرض -->
       <div class="tabs">
         <button class="tab-btn active" onclick="switchTab('today')">
           أداء اليوم
@@ -288,17 +331,34 @@
         <button class="tab-btn" onclick="switchTab('all')">الـ 40 يوم</button>
       </div>
 
-      <!-- شاشة أداء اليوم -->
       <div id="view-today" class="dashboard-section active">
-        <div class="today-list" id="today-container">
-          <!-- سيتم حقن الصلوات هنا -->
-        </div>
+        <div class="today-list" id="today-container"></div>
       </div>
 
-      <!-- شاشة الجراف (آخر أسبوع / 40 يوم) -->
       <div id="view-chart" class="dashboard-section">
         <div class="chart-container">
           <canvas id="lineChart"></canvas>
+        </div>
+      </div>
+
+      <!-- قسم شريط التقدم (العداد) -->
+      <div class="progress-section">
+        <div class="progress-text">
+          <span
+            >اليوم
+            <span id="challenge-day" style="color: var(--primary)">0</span> من
+            40</span
+          >
+          <span
+            >باقي
+            <span id="challenge-remaining" style="color: var(--warning)"
+              >40</span
+            >
+            يوم</span
+          >
+        </div>
+        <div class="progress-bar">
+          <div class="progress-bar-fill" id="progress-bar-fill"></div>
         </div>
       </div>
     </div>
@@ -317,7 +377,6 @@
       let currentActivePrayer = null;
       let currentChartRange = "week";
 
-      // دالة تحويل الوقت من 24 لـ 12 ساعة (ص / م)
       function formatAMPM(time24) {
         let [hours, minutes] = time24.split(":");
         hours = parseInt(hours);
@@ -355,6 +414,35 @@
         return d;
       }
 
+      function updateProgressBar(data) {
+        const days = Object.keys(data).sort();
+        let currentDay = 0;
+        let remaining = 40;
+
+        if (days.length > 0) {
+          const startDate = new Date(days[0]);
+          const today = new Date(getTodayStr());
+
+          // حساب الفرق بالأيام بين أول يوم تسجيل واليوم الحالي
+          const diffTime = today - startDate;
+          const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+          currentDay = diffDays + 1; // اليوم الأول = 1
+
+          if (currentDay > 40) currentDay = 40;
+          remaining = 40 - currentDay;
+        }
+
+        document.getElementById("challenge-day").innerText = currentDay;
+        document.getElementById("challenge-remaining").innerText = remaining;
+
+        const progressPercent = currentDay > 0 ? (currentDay / 40) * 100 : 0;
+        setTimeout(() => {
+          document.getElementById("progress-bar-fill").style.width =
+            `${progressPercent}%`;
+        }, 300); // تأخير بسيط لعمل أنيميشن ناعم عند التحميل
+      }
+
       function checkAndRender() {
         if (!prayerTimings24.Fajr) return;
 
@@ -382,15 +470,13 @@
         }
 
         if (now < parsePrayerTime(prayerTimings24.Fajr)) {
-          activePrayerIndex = 4; // العشاء
+          activePrayerIndex = 4;
         }
 
         localStorage.setItem("prayer40_data", JSON.stringify(data));
         currentActivePrayer = PRAYERS[activePrayerIndex];
 
-        // تحديث الكارت الأساسي
         document.getElementById("p-name").innerText = currentActivePrayer.name;
-        // عرض الوقت بنظام 12 ساعة
         document.getElementById("p-time").innerText = formatAMPM(
           prayerTimings24[currentActivePrayer.id],
         );
@@ -399,7 +485,7 @@
         const statusMsg = document.getElementById("status-msg");
         const currentStatus = data[todayStr][currentActivePrayer.id];
 
-        btn.className = "log-btn"; // ريسيت للكلاس
+        btn.className = "log-btn";
         if (currentStatus) {
           btn.disabled = true;
           if (currentStatus === "ontime") {
@@ -411,7 +497,7 @@
             btn.classList.add("completed", "btn-warning");
             btn.innerText = "صُليت متأخرة";
             statusMsg.className = "text-warning";
-            statusMsg.innerText = "حاول تبدر المرة الجاية 💛";
+            statusMsg.innerText = "احرص على التبكير المرة القادمة 💛";
           } else if (currentStatus === "missed") {
             btn.classList.add("completed", "btn-danger");
             btn.innerText = "فائتة";
@@ -427,6 +513,7 @@
 
         renderTodayList(data[todayStr]);
         updateChart();
+        updateProgressBar(data);
       }
 
       function logCurrentPrayer() {
@@ -438,7 +525,6 @@
         );
         const diffMinutes = Math.floor((now - adhanTime) / 60000);
 
-        // تعديل معيار الوقت ليصبح 30 دقيقة بدلاً من 60
         let status = "ontime";
         if (diffMinutes > 30) {
           status = "late";
@@ -454,10 +540,10 @@
         checkAndRender();
       }
 
-      // بناء قائمة أداء اليوم
       function renderTodayList(todayData) {
         const container = document.getElementById("today-container");
         container.innerHTML = "";
+        const now = new Date();
 
         PRAYERS.forEach((prayer) => {
           const time24 = prayerTimings24[prayer.id];
@@ -465,9 +551,10 @@
 
           const time12 = formatAMPM(time24);
           const status = todayData[prayer.id];
+          const prayerTime = parsePrayerTime(time24);
 
           let badgeClass = "badge-pending";
-          let badgeText = "لم يحن / بالانتظار";
+          let badgeText = "لم يحن بعد";
 
           if (status === "ontime") {
             badgeClass = "badge-ontime";
@@ -478,6 +565,9 @@
           } else if (status === "missed") {
             badgeClass = "badge-missed";
             badgeText = "فائتة";
+          } else if (now >= prayerTime) {
+            badgeClass = "badge-current";
+            badgeText = "حان وقتها";
           }
 
           const row = document.createElement("div");
@@ -493,7 +583,6 @@
         });
       }
 
-      // التبديل بين التبويبات
       function switchTab(tab) {
         document
           .querySelectorAll(".tab-btn")
@@ -507,17 +596,15 @@
         } else {
           event.target.classList.add("active");
           document.getElementById("view-chart").classList.add("active");
-          currentChartRange = tab; // 'week' or 'all'
+          currentChartRange = tab;
           updateChart();
         }
       }
 
-      // تحديث الرسم البياني بناءً على النطاق الزمني
       function updateChart() {
         const data = JSON.parse(localStorage.getItem("prayer40_data")) || {};
         let days = Object.keys(data).sort();
 
-        // فلترة الأيام حسب الاختيار
         if (currentChartRange === "week" && days.length > 7) {
           days = days.slice(-7);
         } else if (currentChartRange === "all" && days.length > 40) {
